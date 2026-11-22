@@ -30,7 +30,7 @@ export function applyStockChange(
   if (product.is_one_of_a_kind && quantity > 1) {
     throw new InventoryRuleError(`${product.sku} is one-of-a-kind; quantity cannot exceed 1`);
   }
-  let status: ProductStatus =
+  const status: ProductStatus =
     setStatus ??
     (quantity === 0 && product.status === "available"
       ? "sold"

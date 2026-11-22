@@ -5,7 +5,32 @@ Demo storefront and real-time inventory for Fashion Freak, an independent hippie
 
 Stack: Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage, Realtime), Claude vision, Vercel.
 
-> Status: phase (a), data model and seed data, is done. The storefront, admin, AI features and full deploy guide come in later phases.
+> Status: phases (a) data model + seed and (b) storefront are done. Admin, AI features and the full deploy guide come next.
+
+## Run it locally (no setup needed)
+```bash
+npm install
+npm run dev   # http://localhost:3000
+```
+Without Supabase env vars the site runs in **demo data mode** on the 30 built-in placeholder products. To see a live SOLD flip in demo mode, open the shop in one tab and run this in another tab's browser console:
+```js
+new BroadcastChannel("ff-inventory").postMessage({ id: "FF-MRGMXI", quantity: 0, status: "sold", sold_at: new Date().toISOString() })
+```
+With Supabase configured, the same flip happens through Supabase Realtime whenever stock changes.
+
+## Storefront
+Design direction: **Lava Lips** (hot pink, molten lava-lamp blobs, floating lips, drippy Rubik Wet Paint headlines, Karla body text, grain overlay). Motion respects `prefers-reduced-motion`.
+
+| Page | Notes |
+| --- | --- |
+| `/` | Hero with live open/closed status, marquee, Just in grid, store vibe, donate/visit |
+| `/shop` | Filters: category, size (understands ranges like XS-6X), color, max price, just in (14 days), search. Plain GET form, so it works without JavaScript |
+| `/shop/[sku]` | Photo, live status, details, "Ask about this item" and "Come find it in store" |
+| `/about`, `/visit`, `/contact` | Story (placeholder copy), real address and hours with today highlighted, map placeholder, demo contact form |
+
+- Live status: `src/components/LiveInventory.tsx` merges Realtime updates into every card. Cards show In stock / Only 1 left / Sold with a SOLD stamp, and disappear once past `sold_visible_days` or if staff hide them.
+- Store details live in `src/lib/store-info.ts` (address and hours from public listings; phone is a placeholder).
+- Checkout seam: `src/lib/commerce/index.ts`. The demo uses an "in store" provider; a Stripe or Square provider can be dropped in later.
 
 ## Data model
 
@@ -33,7 +58,7 @@ In app code, the only way in is `src/lib/inventory/service.ts` (`recordSale`, `r
 ## Seed data
 30 placeholder products across dresses, tops, denim, jackets, accessories, jewelry, vintage and shoes. Some are one-of-a-kind and five are sold (one sold 6 days ago, so it's already past the 3-day window and hidden from the public).
 
-- Source: `scripts/seed-data.ts`
+- Source: `src/lib/demo/seed-data.ts`
 - Regenerate `supabase/seed.sql` and the placeholder images in `public/placeholders/`: `npm run seed:generate`
 
 ## Setup (so far)
@@ -45,7 +70,7 @@ In app code, the only way in is `src/lib/inventory/service.ts` (`recordSale`, `r
    `insert into staff (user_id, display_name, role) values ('<user id>', 'Your name', 'owner');`
 
 ## Tests
-- `npm test`: unit tests for the sale/decrement rules, storefront badge rules, SKUs and the sale service.
+- `npm test`: unit tests for the sale/decrement rules, storefront badge rules, shop filters, store hours, SKUs and the sale service.
 - `npm run test:db`: runs the migration, seed and SQL tests on a throwaway database (needs a local Postgres 15+; set `PGURL`). Covers RLS, overselling, undo, one-of-a-kind limits and the sold-visibility setting.
 
 ## Future: syncing sales from a POS

@@ -4,7 +4,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { SEED_PRODUCTS, type SeedProduct } from "./seed-data";
+import { SEED_PRODUCTS, type SeedProduct } from "../src/lib/demo/seed-data";
 import type { Category } from "../src/lib/inventory/types";
 
 const ROOT = join(__dirname, "..");
