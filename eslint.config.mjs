@@ -20,6 +20,13 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    rules: { "@next/next/no-img-element": "off" },
+  },
+  {
+    ignores: [
+    ],
+  },
 ];
 
 export default eslintConfig;
