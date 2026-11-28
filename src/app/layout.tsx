@@ -13,6 +13,7 @@ const karla = Karla({ subsets: ["latin"], variable: "--font-karla", display: "sw
 export const metadata: Metadata = {
   title: { default: "Fashion Freak · Wichita's all-alternative thrift", template: "%s · Fashion Freak" },
   description: "Gothic, hippie, rave, festival and costume clothing, thrifted and consigned in Wichita, KS. Sizes XS to 6XL.",
+  openGraph: { images: [{ url: "/brand/logo-512.png", width: 512, height: 512, alt: "Fashion Freak logo" }] },
 };
 
 export const viewport: Viewport = { themeColor: "#ff3f8e" };

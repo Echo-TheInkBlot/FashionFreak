@@ -3,6 +3,7 @@ import { getPublicProducts } from "@/lib/catalog";
 import { isJustIn } from "@/lib/catalog-filters";
 import { ProductGrid } from "@/components/ProductCard";
 import { Marquee } from "@/components/Marquee";
+import { LogoBadge } from "@/components/Logo";
 import { STORE, openStatus } from "@/lib/store-info";
 
 export const dynamic = "force-dynamic";
@@ -24,12 +25,17 @@ export default async function Home() {
       {/* Hero */}
       <section className="relative isolate overflow-hidden border-b-[3px] border-ink">
         <div className="lava" aria-hidden><i /><i /><i /></div>
-        <div aria-hidden className="lips absolute right-4 top-8 hidden w-[min(34vw,320px)] z-10 sm:block" />
+        <div className="badge-float absolute right-[4%] top-10 z-10 hidden w-[min(32vw,380px)] md:block">
+          <div className="rounded-full border-[4px] border-ink shadow-[10px_12px_0_var(--color-ink)]">
+            <LogoBadge size={380} priority className="block h-auto w-full" />
+          </div>
+          <div aria-hidden className="lips absolute -bottom-6 -left-10 w-28 rotate-[-12deg]" />
+        </div>
         <div className="relative z-20 mx-auto max-w-6xl px-4 pt-16 pb-20 sm:pt-24 sm:pb-28">
           <p className="inline-block rounded-full border-2 border-ink bg-sun px-3 py-1 text-sm font-bold">
             {status.label} · {STORE.address.street}
           </p>
-          <h1 className="drip-title mt-6 max-w-3xl text-[clamp(52px,10vw,120px)]">
+          <h1 className="drip-title mt-6 max-w-3xl md:max-w-[60%] text-[clamp(52px,9vw,116px)]">
             Hot, wet paint &amp; hotter vintage
           </h1>
           <p className="mt-6 max-w-xl rounded-[28px_28px_28px_8px] bg-ink px-5 py-4 text-lg font-semibold text-blush">

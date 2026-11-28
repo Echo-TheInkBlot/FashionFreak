@@ -29,7 +29,7 @@ Design direction: **Lava Lips** (hot pink, molten lava-lamp blobs, floating lips
 | `/about`, `/visit`, `/contact` | Story (placeholder copy), real address and hours with today highlighted, map placeholder, demo contact form |
 
 - Live status: `src/components/LiveInventory.tsx` merges Realtime updates into every card. Cards show In stock / Only 1 left / Sold with a SOLD stamp, and disappear once past `sold_visible_days` or if staff hide them.
-- Store details live in `src/lib/store-info.ts` (address and hours from public listings; phone is a placeholder).
+- Logo: the shop's skull badge in `public/brand/` (header, footer, hero, site icon, social preview). Store details live in `src/lib/store-info.ts` (address and hours from public listings; phone is a placeholder).
 - Checkout seam: `src/lib/commerce/index.ts`. The demo uses an "in store" provider; a Stripe or Square provider can be dropped in later.
 
 ## Data model

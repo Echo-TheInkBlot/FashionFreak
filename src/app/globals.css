@@ -72,6 +72,10 @@ body::after {
 }
 @keyframes floaty { 50% { transform: translateY(-14px) rotate(-4deg); } }
 
+/* Hero logo badge: slow float + sway */
+.badge-float { animation: badge 7s ease-in-out infinite; }
+@keyframes badge { 50% { transform: translateY(-14px) rotate(6deg); } }
+
 /* Drippy edge: put on a block; drips hang below it in its own color */
 .drips { position: relative; }
 .drips::after {

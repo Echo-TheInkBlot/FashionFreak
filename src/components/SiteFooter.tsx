@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { STORE, fullAddress, formatTime, mapsUrl } from "@/lib/store-info";
+import { LogoBadge } from "./Logo";
 
 export function SiteFooter() {
   return (
     <footer className="on-ink bg-ink text-blush mt-24">
       <div className="mx-auto max-w-6xl px-4 py-12 grid gap-10 sm:grid-cols-3">
         <div>
+          <LogoBadge size={112} className="mb-4 border-[3px] border-sun" />
           <p className="font-display text-3xl text-sun">Fashion Freak</p>
           <p className="mt-2">{STORE.tagline}. Thrift and consignment, sizes {STORE.sizes}.</p>
         </div>
