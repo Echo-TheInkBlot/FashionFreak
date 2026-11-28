@@ -92,4 +92,23 @@ do $$ begin
   assert (select count(*) from products where sku = 'FF-MRGMXI') = 0, 'hidden item visible';
 end $$;
 reset role;
+-- 9. Square link: a Square-origin sale via the service role, webhook log is service-only, variation ids are unique.
+update products set square_variation_id = 'VAR-1' where sku = 'FF-CHRCRS';
+do $$ begin
+  begin update products set square_variation_id = 'VAR-1' where sku = 'FF-IRDMSH'; raise exception 'duplicate variation allowed';
+  exception when unique_violation then null; end;
+end $$;
+set role authenticated; select set_config('request.jwt.claims', '{"role":"authenticated","sub":"11111111-1111-1111-1111-111111111111"}', false);
+do $$ begin
+  begin insert into square_webhook_events (event_id, type, payload) values ('x', 'y', '{}'); raise exception 'staff wrote webhook log';
+  exception when insufficient_privilege then null; end;
+end $$;
+reset role;
+set role service_role; select set_config('request.jwt.claims', '{"role":"service_role"}', false);
+insert into square_webhook_events (event_id, type, payload) values ('evt-1', 'inventory.count.updated', '{}');
+do $$ begin
+  perform apply_inventory_change((select id from products where square_variation_id = 'VAR-1'), -1, 'pos_webhook', null, 'Sold on Square');
+  assert (select quantity from products where sku = 'FF-CHRCRS') = 1, 'square sale failed';
+end $$;
+reset role;
 select 'ALL DATABASE TESTS PASSED' as result;

@@ -1,0 +1,3 @@
+{
+  "crons": [{ "path": "/api/square/reconcile", "schedule": "0 9 * * *" }]
+}
