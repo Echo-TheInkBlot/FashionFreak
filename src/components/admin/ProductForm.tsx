@@ -1,6 +1,8 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState, useTransition } from "react";
 import { saveProductAction, type ActionResult } from "@/app/admin/actions";
+import { draftListingAction, type DraftResult } from "@/app/admin/ai-actions";
+import { shrinkImage } from "./shrinkImage";
 import { CATEGORIES, type Product } from "@/lib/inventory/types";
 import { CATEGORY_LABELS } from "@/lib/catalog-filters";
 
@@ -8,13 +10,48 @@ const field = "w-full rounded-2xl border-[3px] border-ink bg-cream px-4 py-3 fon
 const label = "mb-1.5 block text-sm font-bold uppercase tracking-wider";
 
 /** Add or edit an item. Stock levels are changed with the stock buttons, so quantity is only set when adding. */
-export function ProductForm({ product }: { product?: Product }) {
+export function ProductForm({ product, aiLive }: { product?: Product; aiLive: boolean }) {
   const [state, action, pending] = useActionState<ActionResult | null, FormData>(saveProductAction, null);
   const [preview, setPreview] = useState<string | null>(product?.photos[0] ?? null);
   const [ooak, setOoak] = useState(product?.is_one_of_a_kind ?? true);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [draft, setDraft] = useState<DraftResult | null>(null);
+  const [drafting, startDraft] = useTransition();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  async function onPhoto(input: HTMLInputElement) {
+    const f = input.files?.[0];
+    if (!f) return;
+    setPreview(URL.createObjectURL(f));
+    setDraft(null);
+    const small = await shrinkImage(f);
+    setPhoto(small);
+    try { const dt = new DataTransfer(); dt.items.add(small); input.files = dt.files; } catch { /* keep the original */ }
+  }
+
+  const runDraft = () => startDraft(async () => {
+    if (!photo) return;
+    const fd = new FormData();
+    fd.set("photo", photo);
+    const r = await draftListingAction(fd);
+    setDraft(r);
+    const form = formRef.current;
+    if (!r.ok || !r.draft || !form) return;
+    const set = (name: string, value: string, onlyIfEmpty = false) => {
+      const el = form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+      if (el && !(onlyIfEmpty && el.value)) el.value = value;
+    };
+    set("name", r.draft.name);
+    set("description", r.draft.description);
+    set("category", r.draft.category);
+    set("color", r.draft.color);
+    set("tags", r.draft.tags.join(", "));
+    set("ai_description", r.draft.visual_notes);
+    if (r.draft.size_on_tag) set("size", r.draft.size_on_tag, true);
+  });
 
   return (
-    <form action={action} className="grid gap-6 lg:grid-cols-[320px_1fr]">
+    <form ref={formRef} action={action} className="grid gap-6 lg:grid-cols-[320px_1fr]">
       {product && <input type="hidden" name="id" value={product.id} />}
       <div className="grid content-start gap-3">
         <label htmlFor="p-photo" className={label}>Photo</label>
@@ -23,9 +60,21 @@ export function ProductForm({ product }: { product?: Product }) {
             : <div className="grid h-full place-items-center p-6 text-center font-bold text-sun">Snap or choose a photo</div>}
         </div>
         <input id="p-photo" name="photo" type="file" accept="image/*" capture="environment"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) setPreview(URL.createObjectURL(f)); }}
+          onChange={(e) => onPhoto(e.currentTarget)}
           className="font-semibold file:mr-3 file:rounded-full file:border-2 file:border-ink file:bg-sun file:px-4 file:py-2 file:font-bold" />
-        <p className="text-sm">AI-drafted names and descriptions from the photo arrive in the next phase.</p>
+        <button type="button" onClick={runDraft} disabled={!photo || drafting}
+          className="rounded-2xl border-[3px] border-ink bg-violet px-4 py-3 font-bold text-sun shadow-[3px_3px_0_var(--color-ink)] disabled:opacity-50">
+          {drafting ? "Reading the photo…" : "✨ Draft details from photo"}
+        </button>
+        {draft && (
+          <p role="status" className={`rounded-2xl px-4 py-2 text-sm font-bold ${draft.ok ? (draft.simulated ? "bg-blush" : "bg-sun") : "bg-lip text-cream"}`}>
+            {draft.message}{draft.ok && " Edit anything before saving."}
+          </p>
+        )}
+        <p className="text-sm">
+          {aiLive ? "Claude looks at the photo and fills in the name, description, category, color and tags. Nothing saves until you do."
+            : "No AI key is set, so drafts are simulated samples for the demo."}
+        </p>
       </div>
 
       <div className="grid content-start gap-4">
