@@ -38,7 +38,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
           </nav>
           <div className="ml-auto flex items-center gap-3">
             <ScanBox />
-            <span className={`hidden rounded-full px-2.5 py-1 text-xs font-bold md:inline ${SQUARE ? "bg-violet text-sun" : "bg-blush/20 text-blush"}`}>
+            <span className={`hidden rounded-full px-2.5 py-1 text-xs font-bold md:inline ${SQUARE ? "bg-violet text-cream" : "bg-blush/20 text-blush"}`}>
               {SQUARE ? `Square ${SQUARE.environment}` : "Square not connected"}
             </span>
             {!staff.demo && <SignOutButton />}

@@ -47,7 +47,7 @@ export function StockPanel({ product, squareConnected }: { product: Product; squ
         {product.status === "hidden"
           ? <button className={`${btn} bg-blush`} disabled={pending} onClick={() => run("unhide")}>Show on site</button>
           : <button className={`${btn} bg-blush`} disabled={pending} onClick={() => run("hide")}>Hide from site</button>}
-        <button className={`${btn} bg-violet text-sun col-span-2`} disabled={pending || !available} onClick={() => run("square_sale")}
+        <button className={`${btn} bg-violet text-cream col-span-2`} disabled={pending || !available} onClick={() => run("square_sale")}
           title="Acts exactly like a sale rung up on the Square iPad">
           {squareConnected ? "Test: Square sale" : "Demo: simulate Square sale"}
         </button>

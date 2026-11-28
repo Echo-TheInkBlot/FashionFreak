@@ -18,7 +18,7 @@ export default async function SquarePage() {
   return (
     <div className="grid gap-6">
       <h1 className="font-display text-5xl">Square</h1>
-      <section className={`rounded-3xl border-[3px] border-ink p-5 ${SQUARE ? "bg-violet text-sun" : "bg-cream"}`}>
+      <section className={`rounded-3xl border-[3px] border-ink p-5 ${SQUARE ? "bg-violet text-cream" : "bg-cream"}`}>
         <p className="text-2xl font-bold">{SQUARE ? `Connected to Square (${SQUARE.environment})` : "Not connected yet"}</p>
         <p className="mt-1 font-semibold">{linked} of {products.length} items are linked to Square.{failed.length ? ` ${failed.length} failed to sync.` : ""}</p>
         {SQUARE && !SQUARE.webhookSignatureKey && <p className="mt-2 font-bold">The webhook signature key is missing, so sales from Square can&apos;t reach the site yet.</p>}

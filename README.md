@@ -5,7 +5,7 @@ Demo storefront and real-time inventory for Fashion Freak, an independent hippie
 
 Stack: Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage, Realtime), Claude vision, Vercel.
 
-> Status: phases (a) data model, (b) storefront and (c) staff app + Square sync are done. AI photo features and the full deploy guide come next.
+> Status: all phases are built: data model, storefront, staff app with Square sync, AI photo features, and the deploy guide below.
 
 ## Run it locally (no setup needed)
 ```bash
@@ -61,7 +61,7 @@ In app code, the only way in is `src/lib/inventory/service.ts` (`recordSale`, `r
 - Source: `src/lib/demo/seed-data.ts`
 - Regenerate `supabase/seed.sql` and the placeholder images in `public/placeholders/`: `npm run seed:generate`
 
-## Setup (so far)
+## Setup with Supabase
 1. `npm install`
 2. Create a Supabase project. In the SQL editor, run the files in `supabase/migrations/` in order, then `supabase/seed.sql`.
    (Or with the Supabase CLI: `supabase link` then `supabase db reset`.)
@@ -69,8 +69,47 @@ In app code, the only way in is `src/lib/inventory/service.ts` (`recordSale`, `r
 4. Make yourself staff: create a user in Supabase > Authentication, then run
    `insert into staff (user_id, display_name, role) values ('<user id>', 'Your name', 'owner');`
 
+## Environment variables
+| Variable | Needed for | Where it comes from |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Real data, staff login, live SOLD flips | Supabase > Project settings > API |
+| `SUPABASE_SERVICE_ROLE_KEY` | Square webhook and nightly check (server only) | Same page. Never expose it to the browser. |
+| `ANTHROPIC_API_KEY` | Real AI photo drafts and matching | console.anthropic.com. Without it, results are simulated and labelled. |
+| `ANTHROPIC_MODEL` | Optional model override | Default `claude-opus-5-5` |
+| `SQUARE_ENVIRONMENT`, `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID` | Square sync | Square Developer Dashboard > your app > Credentials / Locations |
+| `SQUARE_WEBHOOK_SIGNATURE_KEY`, `SQUARE_WEBHOOK_URL` | Sales on the iPad updating the site | Square Developer Dashboard > Webhooks |
+| `CRON_SECRET` | Protects the nightly Square check | Any long random string |
+| `NEXT_PUBLIC_SITE_URL` | Link previews once you have a domain | e.g. `https://fashionfreakwichita.com` |
+
+Everything is optional: with none set, the whole site runs in demo mode.
+
+## Deploy (Vercel)
+1. Sign in at vercel.com with GitHub and **Add New > Project**, then import this repository. Vercel detects Next.js; keep the defaults.
+2. Under **Environment Variables**, add the variables above that you're using. For a public demo, at least add Supabase: without it each Vercel server keeps its own in-memory copy of the demo data, so a sale on the staff page may not show on the shop page.
+3. **Deploy.** Every push to `main` redeploys; pull requests get preview URLs.
+4. After the first deploy:
+   - Supabase > Authentication > URL configuration: set the Site URL to your Vercel URL.
+   - Square > Webhooks: point the subscription at `https://<your site>/api/square/webhook` and set `SQUARE_WEBHOOK_URL` to exactly that.
+   - The nightly Square check runs from `vercel.json` (9:00 UTC, about 3 AM in Wichita) and needs `CRON_SECRET`.
+5. Custom domain: Vercel > Project > Settings > Domains, then set `NEXT_PUBLIC_SITE_URL`.
+
+**Demo-mode warning:** without Supabase there is no staff login, so anyone with the link can open `/admin`. Changes only live in memory and reset, but connect Supabase before sharing the link widely.
+
+## Monthly cost estimate
+Prices as of late 2026; check each provider's pricing page before committing.
+
+| Service | Demo | Running the real shop |
+|---|---|---|
+| Vercel | $0 (Hobby) | $20 (Pro; Hobby is for non-commercial use) |
+| Supabase | $0 (Free; pauses after a week with no visits) | $25 (Pro: no pausing, daily backups, 8 GB database, 100 GB photo storage) |
+| Claude API | $0 without a key | About $20 for 200 new listings and 100 photo lookups (about 3¢ per draft, 10 to 20¢ per lookup) |
+| Square API | $0 | $0 (normal Square card fees are unchanged) |
+| Domain | none | about $1 a month ($12 to $20 a year) |
+| **Total** | **$0** | **about $65 a month** |
+
 ## Tests
 - `npm test`: unit tests for the sale/decrement rules, Square sync and webhook signatures, label sheets, storefront badge rules, shop filters, store hours, SKUs, the inventory service, and the AI confidence rules (including "the AI never sells on its own").
+- `npm run test:a11y`: with the app running on port 3100, checks every store and staff page for accessibility problems (axe, WCAG 2.1 AA) and sideways scrolling, at desktop and phone widths.
 - `npm run test:db`: runs the migration, seed and SQL tests on a throwaway database (needs a local Postgres 15+; set `PGURL`). Covers RLS, overselling, undo, one-of-a-kind limits and the sold-visibility setting.
 
 ## How it works with Square (the shop's register)

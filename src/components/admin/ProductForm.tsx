@@ -57,13 +57,13 @@ export function ProductForm({ product, aiLive }: { product?: Product; aiLive: bo
         <label htmlFor="p-photo" className={label}>Photo</label>
         <div className="aspect-[4/5] w-full max-w-sm overflow-hidden rounded-3xl border-[3px] border-ink bg-violet lg:max-w-none">
           {preview ? <img src={preview} alt="Item photo preview" className="h-full w-full object-cover" />
-            : <div className="grid h-full place-items-center p-6 text-center font-bold text-sun">Snap or choose a photo</div>}
+            : <div className="grid h-full place-items-center p-6 text-center font-bold text-cream">Snap or choose a photo</div>}
         </div>
         <input id="p-photo" name="photo" type="file" accept="image/*" capture="environment"
           onChange={(e) => onPhoto(e.currentTarget)}
           className="w-full min-w-0 font-semibold file:mr-3 file:rounded-full file:border-2 file:border-ink file:bg-sun file:px-4 file:py-2 file:font-bold" />
         <button type="button" onClick={runDraft} disabled={!photo || drafting}
-          className="rounded-2xl border-[3px] border-ink bg-violet px-4 py-3 font-bold text-sun shadow-[3px_3px_0_var(--color-ink)] disabled:opacity-50">
+          className="rounded-2xl border-[3px] border-ink bg-violet px-4 py-3 font-bold text-cream shadow-[3px_3px_0_var(--color-ink)] disabled:opacity-50">
           {drafting ? "Reading the photo…" : "✨ Draft details from photo"}
         </button>
         {draft && (

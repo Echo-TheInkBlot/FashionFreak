@@ -26,7 +26,7 @@ export default async function Dashboard() {
         <div className={`${tile} bg-sun`}><p className="text-sm font-bold uppercase tracking-wider">Sold today</p><p className="font-display text-5xl tabular-nums">{today}</p></div>
         <div className={`${tile} bg-cream`}><p className="text-sm font-bold uppercase tracking-wider">Sold this week</p><p className="font-display text-5xl tabular-nums">{week}</p></div>
         <div className={`${tile} ${low.length ? "bg-orange" : "bg-cream"}`}><p className="text-sm font-bold uppercase tracking-wider">Low stock</p><p className="font-display text-5xl tabular-nums">{low.length}</p></div>
-        <div className={`${tile} ${!SQUARE ? "bg-cream" : errors || notInSquare ? "bg-lip text-cream" : "bg-violet text-sun"}`}>
+        <div className={`${tile} ${!SQUARE ? "bg-cream" : errors || notInSquare ? "bg-lip text-cream" : "bg-violet text-cream"}`}>
           <p className="text-sm font-bold uppercase tracking-wider">Square</p>
           <p className="mt-1 text-lg font-bold">
             {!SQUARE ? "Not connected" : errors ? `${errors} items failed to sync` : notInSquare ? `${notInSquare} items not in Square yet` : "All synced"}

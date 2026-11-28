@@ -24,7 +24,7 @@ export default function Visit() {
           <div className="rounded-[28px] border-[3px] border-ink bg-blush p-6">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-bold uppercase tracking-wider">Hours</h2>
-              <span className={`rounded-full border-2 border-ink px-3 py-1 text-sm font-bold ${status.open ? "bg-violet text-sun" : "bg-cream"}`}>{status.label}</span>
+              <span className={`rounded-full border-2 border-ink px-3 py-1 text-sm font-bold ${status.open ? "bg-violet text-cream" : "bg-cream"}`}>{status.label}</span>
             </div>
             <table className="mt-3 w-full tabular-nums">
               <tbody>
