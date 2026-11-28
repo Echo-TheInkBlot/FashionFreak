@@ -27,7 +27,7 @@ export async function draftListingAction(fd: FormData): Promise<DraftResult> {
     await staffOrThrow();
     const ai = getAi(simMode(fd));
     const draft = await ai.draftListing(await readPhoto(fd.get("photo")));
-    return { ok: true, message: ai.kind === "simulated" ? "Simulated draft (no AI key set)" : "Drafted from the photo. Check it over.", draft, simulated: ai.kind === "simulated" };
+    return { ok: true, message: ai.kind === "simulated" ? "Simulated draft (no AI key set)." : "Drafted from the photo. Check it over.", draft, simulated: ai.kind === "simulated" };
   } catch (e) {
     return { ok: false, message: message(e) };
   }

@@ -53,15 +53,15 @@ export function ProductForm({ product, aiLive }: { product?: Product; aiLive: bo
   return (
     <form ref={formRef} action={action} className="grid gap-6 lg:grid-cols-[320px_1fr]">
       {product && <input type="hidden" name="id" value={product.id} />}
-      <div className="grid content-start gap-3">
+      <div className="grid min-w-0 content-start gap-3">
         <label htmlFor="p-photo" className={label}>Photo</label>
-        <div className="aspect-[4/5] overflow-hidden rounded-3xl border-[3px] border-ink bg-violet">
+        <div className="aspect-[4/5] w-full max-w-sm overflow-hidden rounded-3xl border-[3px] border-ink bg-violet lg:max-w-none">
           {preview ? <img src={preview} alt="Item photo preview" className="h-full w-full object-cover" />
             : <div className="grid h-full place-items-center p-6 text-center font-bold text-sun">Snap or choose a photo</div>}
         </div>
         <input id="p-photo" name="photo" type="file" accept="image/*" capture="environment"
           onChange={(e) => onPhoto(e.currentTarget)}
-          className="font-semibold file:mr-3 file:rounded-full file:border-2 file:border-ink file:bg-sun file:px-4 file:py-2 file:font-bold" />
+          className="w-full min-w-0 font-semibold file:mr-3 file:rounded-full file:border-2 file:border-ink file:bg-sun file:px-4 file:py-2 file:font-bold" />
         <button type="button" onClick={runDraft} disabled={!photo || drafting}
           className="rounded-2xl border-[3px] border-ink bg-violet px-4 py-3 font-bold text-sun shadow-[3px_3px_0_var(--color-ink)] disabled:opacity-50">
           {drafting ? "Reading the photo…" : "✨ Draft details from photo"}
@@ -77,7 +77,7 @@ export function ProductForm({ product, aiLive }: { product?: Product; aiLive: bo
         </p>
       </div>
 
-      <div className="grid content-start gap-4">
+      <div className="grid min-w-0 content-start gap-4">
         {state && !state.ok && <p role="alert" className="rounded-2xl bg-lip px-4 py-3 font-bold text-cream">{state.message}</p>}
         <div><label htmlFor="p-name" className={label}>Name</label>
           <input id="p-name" name="name" required defaultValue={product?.name} placeholder="Midnight Velvet Witch Dress" className={field} /></div>
