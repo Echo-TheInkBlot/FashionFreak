@@ -12,7 +12,7 @@ import { shrinkImage } from "./shrinkImage";
 const btn = "rounded-2xl border-[3px] border-ink font-bold shadow-[3px_3px_0_var(--color-ink)] active:translate-y-0.5 active:shadow-none disabled:opacity-50";
 const pct = (c: number) => `${Math.round(c * 100)}%`;
 
-function ItemFace({ item, big }: { item: MatchCard; big?: boolean }) {
+function ItemFace({ item, big, children }: { item: MatchCard; big?: boolean; children?: React.ReactNode }) {
   return (
     <div className={big ? "grid gap-4 sm:grid-cols-[200px_1fr]" : "grid gap-3"}>
       <div className="aspect-[4/5] overflow-hidden rounded-2xl border-[3px] border-ink bg-violet">
@@ -21,6 +21,7 @@ function ItemFace({ item, big }: { item: MatchCard; big?: boolean }) {
       <div>
         <p className={`font-display ${big ? "text-3xl" : "text-xl"} leading-tight`}>{item.name}</p>
         <p className="mt-1 font-bold">{item.price} · {item.size ?? "One size"} · <span className="font-mono">{item.sku}</span></p>
+        {children && <div className="mt-4 grid gap-4">{children}</div>}
       </div>
     </div>
   );
@@ -89,7 +90,7 @@ export function PhotoSell({ aiLive, squareConnected }: { aiLive: boolean; square
       <section className="grid gap-4 rounded-3xl border-[3px] border-ink bg-blush p-5 md:grid-cols-[240px_1fr]">
         <div className="aspect-[4/5] overflow-hidden rounded-2xl border-[3px] border-ink bg-violet">
           {preview ? <img src={preview} alt="Photo to look up" className="h-full w-full object-cover" />
-            : <div className="grid h-full place-items-center p-6 text-center font-bold text-sun">Snap the item</div>}
+            : <div className="grid h-full place-items-center p-6 text-center font-bold text-cream">Snap the item</div>}
         </div>
         <div className="grid min-w-0 content-start gap-4">
           <label className="grid gap-1.5 font-bold">
@@ -112,7 +113,7 @@ export function PhotoSell({ aiLive, squareConnected }: { aiLive: boolean; square
               <label><input type="radio" name="sim" checked={sim === "low"} onChange={() => setSim("low")} /> Unsure match</label>
             </fieldset>
           )}
-          <button type="button" onClick={find} disabled={!photo || pending} className={`${btn} bg-violet px-6 py-3 text-lg text-sun`}>
+          <button type="button" onClick={find} disabled={!photo || pending} className={`${btn} bg-violet px-6 py-3 text-lg text-cream`}>
             {pending && !res ? "Looking…" : "Find this item"}
           </button>
         </div>
@@ -137,13 +138,14 @@ export function PhotoSell({ aiLive, squareConnected }: { aiLive: boolean; square
             <>
               <div className="grid gap-4 rounded-3xl border-[3px] border-ink bg-cream p-5">
                 <p className="text-sm font-bold uppercase tracking-wider">Best match · {pct(ui.option.confidence)} sure</p>
-                <ItemFace item={items[ui.option.productId]} big />
-                <p>{ui.option.reason}</p>
-                <SellButton o={ui.option} label="Confirm sold" />
-                <SquareHint sku={items[ui.option.productId].sku} />
-                {!showOthers && (
-                  <button type="button" onClick={() => setShowOthers(true)} className="w-fit font-bold underline">Not it? Show other options</button>
-                )}
+                <ItemFace item={items[ui.option.productId]} big>
+                  <p>{ui.option.reason}</p>
+                  <SellButton o={ui.option} label="Confirm sold" />
+                  <SquareHint sku={items[ui.option.productId].sku} />
+                  {!showOthers && (
+                    <button type="button" onClick={() => setShowOthers(true)} className="w-fit font-bold underline">Not it? Show other options</button>
+                  )}
+                </ItemFace>
               </div>
               {showOthers && (ui.others.length ? <Chooser options={ui.others} /> : <p className="font-semibold">No other close matches.</p>)}
             </>

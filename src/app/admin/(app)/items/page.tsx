@@ -5,7 +5,7 @@ import type { ProductStatus } from "@/lib/inventory/types";
 
 export const metadata = { title: "Items" };
 
-const STATUS_STYLE: Record<ProductStatus, string> = { available: "bg-violet text-sun", sold: "bg-ink text-sun", hidden: "bg-cream" };
+const STATUS_STYLE: Record<ProductStatus, string> = { available: "bg-violet text-cream", sold: "bg-ink text-sun", hidden: "bg-cream" };
 
 export default async function Items({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   const { q = "", status = "" } = await searchParams;

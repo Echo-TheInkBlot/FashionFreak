@@ -9,7 +9,7 @@ export function ContactForm({ itemSku, itemName }: { itemSku?: string; itemName?
 
   if (sent) {
     return (
-      <div role="status" className="rounded-[28px] border-[3px] border-ink bg-violet p-8 text-sun">
+      <div role="status" className="rounded-[28px] border-[3px] border-ink bg-violet p-8 text-cream">
         <p className="font-display text-4xl">Got it, cutie.</p>
         <p className="mt-2 font-semibold text-blush">This is a demo, so your message wasn&apos;t actually sent. On the real site it goes straight to the shop.</p>
       </div>

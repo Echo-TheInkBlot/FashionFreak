@@ -18,7 +18,7 @@ export function SquareItemPanel({ product, connected, environment }: { product: 
             {product.square_synced_at && (<><dt>Last synced</dt><dd>{new Date(product.square_synced_at).toLocaleString("en-US", { timeZone: "America/Chicago" })}</dd></>)}
           </dl>
           <button type="button" disabled={pending} onClick={() => start(async () => setMsg((await pushToSquareAction(product.id)).message))}
-            className="mt-4 rounded-2xl border-[3px] border-ink bg-violet px-4 py-2.5 font-bold text-sun disabled:opacity-60">
+            className="mt-4 rounded-2xl border-[3px] border-ink bg-violet px-4 py-2.5 font-bold text-cream disabled:opacity-60">
             {product.square_variation_id ? "Re-send to Square" : "Send to Square"}
           </button>
           {msg && <p role="status" className="mt-2 font-bold">{msg}</p>}

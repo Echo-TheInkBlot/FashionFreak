@@ -22,9 +22,9 @@ export default async function Labels({ searchParams }: { searchParams: Promise<{
             <input id="copies" name="copies" type="number" min={1} max={10} defaultValue={1} className="w-24 rounded-2xl border-[3px] border-ink bg-cream px-3 py-2 font-bold" /></div>
           <button className="rounded-2xl border-[3px] border-ink bg-sun px-5 py-3 font-bold shadow-[3px_3px_0_var(--color-ink)]">Make label sheet (PDF)</button>
         </div>
-        <fieldset className="rounded-3xl border-[3px] border-ink bg-cream p-4">
+        <fieldset className="min-w-0 rounded-3xl border-[3px] border-ink bg-cream p-4">
           <legend className="px-2 font-bold">Items</legend>
-          <ul className="grid gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {items.map((p) => (
               <li key={p.id}><label className="flex items-center gap-3 font-semibold">
                 <input type="checkbox" name="id" value={p.id} defaultChecked={checked(p.id, p.created_at)} className="size-5 accent-ink" />
