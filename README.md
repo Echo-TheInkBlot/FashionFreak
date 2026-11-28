@@ -70,7 +70,7 @@ In app code, the only way in is `src/lib/inventory/service.ts` (`recordSale`, `r
    `insert into staff (user_id, display_name, role) values ('<user id>', 'Your name', 'owner');`
 
 ## Tests
-- `npm test`: unit tests for the sale/decrement rules, Square sync and webhook signatures, label sheets, storefront badge rules, shop filters, store hours, SKUs and the inventory service.
+- `npm test`: unit tests for the sale/decrement rules, Square sync and webhook signatures, label sheets, storefront badge rules, shop filters, store hours, SKUs, the inventory service, and the AI confidence rules (including "the AI never sells on its own").
 - `npm run test:db`: runs the migration, seed and SQL tests on a throwaway database (needs a local Postgres 15+; set `PGURL`). Covers RLS, overselling, undo, one-of-a-kind limits and the sold-visibility setting.
 
 ## How it works with Square (the shop's register)
@@ -97,7 +97,23 @@ Installable on a phone or tablet (Add to Home Screen; manifest at `public/staff.
 
 - **Today:** sold today and this week, low stock (restockable items only), recently added, Square sync status, latest activity with Undo.
 - **Items:** search and filter, then each item has big stock buttons (Sold one, Restock, Mark all sold, Hide/Show) with an Undo banner, its Square status and its full history.
-- **Add/edit item:** photo from the camera or library, details, price, one-of-a-kind flag. A new SKU is generated automatically.
+- **Add/edit item:** photo from the camera or library, details, price, one-of-a-kind flag. A new SKU is generated automatically. **Draft details from photo** fills in the name, description, category, color, tags and visual notes with Claude; staff edit before saving.
+- **Sell by photo:** for an item with no tag. See below.
 - **Scan to find:** a USB or Bluetooth barcode scanner works anywhere in the staff app and jumps to the scanned item.
 - **Activity:** the full audit log. Undo is refused if the item changed afterwards, so it never wipes out a later sale.
 - **Login:** Supabase email + password; only users in the `staff` table get in. In demo mode there's no login, and data lives in memory (it resets on restart). A "Demo: simulate Square sale" button acts exactly like a webhook from the iPad.
+
+## AI photo features (Claude)
+Code: `src/lib/ai/`. Tests: `tests/ai.test.ts`.
+
+- **Draft a listing** (`draftListing`): one photo in, a structured JSON draft out (name, description, category, color, tags, visual notes, size only if a tag is readable). Nothing is saved until staff press Save.
+- **Sell by photo** (`/admin/sell-by-photo`, `lookupByPhoto`):
+  1. Pre-filter: the staff's category pick, or the AI's read of the photo (category, color, visual notes), ranks the sellable items. The top 8 go to the model.
+  2. Match: the photo and those candidates (details plus listing photo) go to Claude, which returns JSON with `best_match_id`, `confidence` (0 to 1) and up to 3 alternatives. Ids not in the candidate list are thrown away.
+  3. Confidence rules (`decideMatchUi`): at or above `store_settings.ai_confidence_threshold` (default 0.85) staff see one big **Confirm sold** button; below it they see the top 3 side by side plus a search box. The threshold can't be set below 0.5.
+  4. **The AI never marks anything sold.** The lookup only reads inventory (a test checks stock and the event log are untouched even at 99% confidence). A sale is recorded only when staff tap, through `recordSale` with method `photo_ai` and the confidence, so it shows in Activity and can be undone. When Square is connected, the screen also shows the SKU to ring up on the iPad.
+- Photos are shrunk in the browser (1568 px JPEG) before upload, keeping uploads fast and under the API's 5 MB image limit.
+- Model: `claude-opus-5-5` (override with `ANTHROPIC_MODEL`), structured outputs, effort `low` for drafts and `medium` for matching. Requests opt into Anthropic's server-side fallback (`fallbacks: "default"`), so if the model declines a photo the API retries it on a recommended fallback model; if that also declines, staff get a "fill it in by hand" message.
+- **No `ANTHROPIC_API_KEY`?** The demo uses a simulated responder, and every screen says "Simulated". A demo toggle switches between a sure and an unsure match so both screens can be shown.
+
+**Rough Claude cost** (Opus 5.5 at $4 / $20 per million input / output tokens): about 3¢ per listing draft, and 10 to 20¢ per photo lookup (one photo plus up to 8 candidate photos; picking the category first skips the extra draft step). 200 new items and 100 photo lookups a month comes to about $20.

@@ -1,3 +1,4 @@
+import { hasClaude } from "@/lib/ai/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getRepo } from "@/lib/inventory/server-repo";
@@ -34,7 +35,7 @@ export default async function ItemPage({ params, searchParams }: { params: Promi
         </div>
       </div>
 
-      {edit ? <ProductForm product={product} /> : (
+      {edit ? <ProductForm product={product} aiLive={hasClaude} /> : (
         <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
           <StockPanel product={product} squareConnected={Boolean(SQUARE)} />
           <SquareItemPanel product={product} connected={Boolean(SQUARE)} environment={SQUARE?.environment ?? null} />
