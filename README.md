@@ -5,7 +5,7 @@ Demo storefront and real-time inventory for Fashion Freak, an independent hippie
 
 Stack: Next.js (App Router) + TypeScript + Tailwind, Supabase (Postgres, Auth, Storage, Realtime), Claude vision, Vercel.
 
-> Status: phases (a) data model + seed and (b) storefront are done. Admin, AI features and the full deploy guide come next.
+> Status: phases (a) data model, (b) storefront and (c) staff app + Square sync are done. AI photo features and the full deploy guide come next.
 
 ## Run it locally (no setup needed)
 ```bash
@@ -63,15 +63,41 @@ In app code, the only way in is `src/lib/inventory/service.ts` (`recordSale`, `r
 
 ## Setup (so far)
 1. `npm install`
-2. Create a Supabase project. In the SQL editor, run `supabase/migrations/0001_init.sql`, then `supabase/seed.sql`.
+2. Create a Supabase project. In the SQL editor, run the files in `supabase/migrations/` in order, then `supabase/seed.sql`.
    (Or with the Supabase CLI: `supabase link` then `supabase db reset`.)
 3. `cp .env.example .env.local` and fill in the values from Supabase > Project settings > API.
 4. Make yourself staff: create a user in Supabase > Authentication, then run
    `insert into staff (user_id, display_name, role) values ('<user id>', 'Your name', 'owner');`
 
 ## Tests
-- `npm test`: unit tests for the sale/decrement rules, storefront badge rules, shop filters, store hours, SKUs and the sale service.
+- `npm test`: unit tests for the sale/decrement rules, Square sync and webhook signatures, label sheets, storefront badge rules, shop filters, store hours, SKUs and the inventory service.
 - `npm run test:db`: runs the migration, seed and SQL tests on a throwaway database (needs a local Postgres 15+; set `PGURL`). Covers RLS, overselling, undo, one-of-a-kind limits and the sold-visibility setting.
 
-## Future: syncing sales from a POS
-If the owner uses Square, Shopify POS or Clover, the cleanest long-term setup is to have the POS send a webhook on each sale. A small API route would verify the webhook signature, map the POS item to our SKU, and call `recordSale(supabaseAdmin(), { productId, method: "pos_webhook", note: "<order id>" })`. Nothing else needs to change, because every sale already goes through that one function, and the website updates live the same way.
+## How it works with Square (the shop's register)
+The shop rings up sales on an iPad running Square, and money goes straight to the shop's Square account. This app never takes payments. Instead:
+
+1. **Items are added in the staff app** (`/admin/items/new`). Saving creates the item on the website *and* in Square's item library, with its SKU, price, size and a tracked stock count.
+2. **Labels** (`/admin/labels`) print a Code 128 barcode of each SKU on Avery 5160 sheets. Scanning a label on the Square iPad rings up that exact item. *The owner needs to scan tags instead of typing custom amounts:* a custom-amount sale doesn't say what sold, so the website can't update.
+3. **When something sells on Square**, Square sends `inventory.count.updated` to `/api/square/webhook`. We compare Square's count with ours and record the difference through the same `recordSale()` function as everything else (method `pos_webhook`), so the listing flips to SOLD live. Refunds bring items back. Because we compare counts rather than replaying events, duplicate or late webhooks are harmless, and each event id is stored in `square_webhook_events`.
+4. **Staff changes in our app** (restock, hide, mark sold, undo) push the new count to Square. Square echoes it back as a webhook, which is a no-op.
+5. **Nightly safety net:** `/api/square/reconcile` (Vercel Cron, `vercel.json`) pulls every count from Square and applies any drift.
+
+Code: `src/lib/square/` (REST client, webhook signature check, sync rules). Tests: `tests/square.test.ts`.
+
+### Setting up Square (sandbox first)
+1. Create an app at developer.squareup.com. Use the **Sandbox** credentials for the demo, so the shop's real account is never touched.
+2. Set `SQUARE_ENVIRONMENT=sandbox`, `SQUARE_ACCESS_TOKEN`, `SQUARE_LOCATION_ID`.
+3. Webhooks > Add subscription: event `inventory.count.updated`, URL `https://<your site>/api/square/webhook`. Put its signature key in `SQUARE_WEBHOOK_SIGNATURE_KEY` and the exact URL in `SQUARE_WEBHOOK_URL`.
+4. Set `CRON_SECRET` for the nightly check.
+5. In the staff app, open Square and press **Send all items to Square** once.
+6. Going live later: switch to the production token and location, and register the production webhook.
+
+## Staff app (`/admin`)
+Installable on a phone or tablet (Add to Home Screen; manifest at `public/staff.webmanifest`).
+
+- **Today:** sold today and this week, low stock (restockable items only), recently added, Square sync status, latest activity with Undo.
+- **Items:** search and filter, then each item has big stock buttons (Sold one, Restock, Mark all sold, Hide/Show) with an Undo banner, its Square status and its full history.
+- **Add/edit item:** photo from the camera or library, details, price, one-of-a-kind flag. A new SKU is generated automatically.
+- **Scan to find:** a USB or Bluetooth barcode scanner works anywhere in the staff app and jumps to the scanned item.
+- **Activity:** the full audit log. Undo is refused if the item changed afterwards, so it never wipes out a later sale.
+- **Login:** Supabase email + password; only users in the `staff` table get in. In demo mode there's no login, and data lives in memory (it resets on restart). A "Demo: simulate Square sale" button acts exactly like a webhook from the iPad.

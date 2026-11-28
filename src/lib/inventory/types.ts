@@ -24,6 +24,10 @@ export interface Product {
   created_at: string;
   updated_at: string;
   sold_at: string | null;
+  square_item_id?: string | null;
+  square_variation_id?: string | null;
+  square_synced_at?: string | null;
+  square_sync_error?: string | null;
 }
 
 export interface InventoryEvent {

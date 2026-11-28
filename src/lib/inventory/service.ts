@@ -1,18 +1,19 @@
 /**
- * The single entry point for changing stock. Barcode scans, AI photo matches (after a staff tap),
- * manual adjustments and, later, a POS webhook all call these functions, which call the
- * apply_inventory_change() database function. That function locks the row, applies the rules,
- * and writes the audit log in one transaction.
+ * The single entry point for changing stock. Square sales (via webhook), photo matches (after a staff tap),
+ * manual adjustments and undo all call these functions. The repo applies the rules and writes the audit log;
+ * in production that is one transaction inside the apply_inventory_change() database function.
+ *
+ * After a change that started on our side, `afterChange` is called so the new count can be pushed to Square.
+ * Changes that came from Square are not pushed back.
  */
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { InventoryEvent, InventoryMethod, Product, ProductStatus } from "./types";
+import { InventoryError, type InventoryRepo } from "./repo";
 import { normalizeSku } from "./sku";
 
-export class InventoryError extends Error {
-  constructor(message: string, readonly code: "not_found" | "not_allowed" | "rule" | "invalid" | "unknown") {
-    super(message);
-  }
-}
+export { InventoryError } from "./repo";
+
+export type AfterChange = (product: Product, event: InventoryEvent) => Promise<void>;
+const noop: AfterChange = async () => {};
 
 export interface RecordSaleInput {
   productId: string;
@@ -20,67 +21,61 @@ export interface RecordSaleInput {
   quantity?: number;          // default 1
   confidence?: number | null; // required for photo_ai
   note?: string | null;
+  staffUser?: string | null;
 }
 
-export async function recordSale(db: SupabaseClient, input: RecordSaleInput): Promise<InventoryEvent> {
+export async function recordSale(repo: InventoryRepo, input: RecordSaleInput, afterChange: AfterChange = noop): Promise<InventoryEvent> {
   const qty = input.quantity ?? 1;
   if (!Number.isInteger(qty) || qty < 1) throw new InventoryError("Quantity must be at least 1", "invalid");
   if (input.method === "photo_ai" && (input.confidence == null || input.confidence < 0 || input.confidence > 1)) {
     throw new InventoryError("A photo match needs a confidence between 0 and 1", "invalid");
   }
-  return applyChange(db, {
+  return change(repo, {
     productId: input.productId, change: -qty, method: input.method,
-    confidence: input.confidence ?? null, note: input.note ?? null,
-  });
+    confidence: input.confidence ?? null, note: input.note ?? null, staffUser: input.staffUser,
+  }, input.method === "pos_webhook" ? noop : afterChange);
 }
 
 /** Looks up a scanned or typed SKU and sells one. */
 export async function recordSaleBySku(
-  db: SupabaseClient, rawSku: string, method: "barcode" | "manual" | "pos_webhook" = "barcode",
+  repo: InventoryRepo, rawSku: string, method: "barcode" | "manual" = "barcode", afterChange: AfterChange = noop,
 ): Promise<{ event: InventoryEvent; product: Product }> {
+  const product = await findBySku(repo, rawSku);
+  const event = await recordSale(repo, { productId: product.id, method }, afterChange);
+  return { event, product };
+}
+
+export async function findBySku(repo: InventoryRepo, rawSku: string): Promise<Product> {
   const sku = normalizeSku(rawSku);
   if (!sku) throw new InventoryError(`"${rawSku}" isn't a Fashion Freak SKU`, "invalid");
-  const { data: product, error } = await db.from("products").select("*").eq("sku", sku).maybeSingle();
-  if (error) throw new InventoryError(error.message, "unknown");
+  const product = await repo.getProductBySku(sku);
   if (!product) throw new InventoryError(`No item with SKU ${sku}`, "not_found");
-  const event = await recordSale(db, { productId: product.id, method });
-  return { event, product: product as Product };
+  return product;
 }
 
 export async function adjustStock(
-  db: SupabaseClient,
-  input: { productId: string; change: number; setStatus?: ProductStatus; note?: string | null },
+  repo: InventoryRepo,
+  input: { productId: string; change: number; setStatus?: ProductStatus; note?: string | null; staffUser?: string | null },
+  afterChange: AfterChange = noop,
 ): Promise<InventoryEvent> {
-  return applyChange(db, { ...input, method: "manual", confidence: null, note: input.note ?? null });
+  if (!Number.isInteger(input.change)) throw new InventoryError("Change must be a whole number", "invalid");
+  return change(repo, { ...input, method: "manual", confidence: null, note: input.note ?? null }, afterChange);
 }
 
-export async function undoEvent(db: SupabaseClient, eventId: string): Promise<InventoryEvent> {
-  const { data, error } = await db.rpc("undo_inventory_event", { p_event_id: eventId });
-  if (error) throw mapError(error);
-  return data as InventoryEvent;
+export async function undoEvent(repo: InventoryRepo, eventId: string, afterChange: AfterChange = noop): Promise<InventoryEvent> {
+  const ev = await repo.undo(eventId);
+  const p = await repo.getProduct(ev.product_id);
+  if (p) await afterChange(p, ev);
+  return ev;
 }
 
-async function applyChange(
-  db: SupabaseClient,
-  a: { productId: string; change: number; method: InventoryMethod; confidence: number | null; note: string | null; setStatus?: ProductStatus },
+async function change(
+  repo: InventoryRepo,
+  a: { productId: string; change: number; method: InventoryMethod; confidence: number | null; note: string | null; setStatus?: ProductStatus; staffUser?: string | null },
+  afterChange: AfterChange,
 ): Promise<InventoryEvent> {
-  const { data, error } = await db.rpc("apply_inventory_change", {
-    p_product_id: a.productId,
-    p_change: a.change,
-    p_method: a.method,
-    p_confidence: a.confidence,
-    p_note: a.note,
-    p_set_status: a.setStatus ?? null,
-  });
-  if (error) throw mapError(error);
-  return data as InventoryEvent;
-}
-
-function mapError(error: { code?: string; message: string }): InventoryError {
-  switch (error.code) {
-    case "42501": return new InventoryError("You need to be logged in as staff to do that", "not_allowed");
-    case "P0002": return new InventoryError(error.message, "not_found");
-    case "P0001": case "23514": return new InventoryError(error.message, "rule");
-    default: return new InventoryError(error.message, "unknown");
-  }
+  const ev = await repo.applyChange(a);
+  const p = await repo.getProduct(a.productId);
+  if (p) await afterChange(p, ev);
+  return ev;
 }
